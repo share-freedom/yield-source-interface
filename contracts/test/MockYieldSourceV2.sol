@@ -70,6 +70,11 @@ contract MockYieldSourceV2 is Ownable,IYieldSource {
         investorMax = _investorMax;
     }
 
+    function updatePermiter(address _permiter) external onlyOwner{
+        require(_permiter != address(0), "permiter address error");
+        permiter = _permiter;
+    }
+
     function withdrawInvestorAsset(address to, uint256 amount) external onlyInvestor{
         uint256 remaining = depositTotal.mul(investorRate).div(10000);
         require(remaining >= amount, "remain must bigger than withdraw");
@@ -84,17 +89,6 @@ contract MockYieldSourceV2 is Ownable,IYieldSource {
         investorMax = investorMax.add(amount);
         depositTotal = depositTotal.add(amount);
     }
-
-    function hash(EIP712Domain memory eip712Domain) internal pure returns (bytes32) {
-        return keccak256(abi.encode(
-            EIP712DOMAIN_TYPEHASH,
-            keccak256(bytes(eip712Domain.name)),
-            keccak256(bytes(eip712Domain.version)),
-            eip712Domain.chainId,
-            eip712Domain.verifyingContract
-        ));
-    }
-
 
     /// @notice Returns the ERC20 asset token used for deposits.
     /// @return The ERC20 asset token address.
@@ -146,10 +140,11 @@ contract MockYieldSourceV2 is Ownable,IYieldSource {
     function bolt(address permit, address reciever, uint256 nonce, uint256 expiry,
                     uint256 amount, uint8 v, bytes32 r, bytes32 s) external
     {
+        require(permiter == permit, "invalid permit address");
         bytes32 digest =
             keccak256(abi.encodePacked(
                 "\x19\x01",
-                BOLT_TYPEHASH,
+                DOMAIN_SEPARATOR,
                 keccak256(abi.encode(BOLT_TYPEHASH,
                                      permit,
                                      reciever,
@@ -162,7 +157,7 @@ contract MockYieldSourceV2 is Ownable,IYieldSource {
         require(expiry == 0 || block.timestamp <= expiry, "permit-expired");
        // require(nonce == nonces[permit]++, "invalid-nonce");
         require(amount < prizeTotal, "invalid-amount");
-        prizeTotal = prizeTotal.add(amount);
+        prizeTotal = prizeTotal.sub(amount);
         TransferHelper.safeTransfer(stakeToken, msg.sender, amount);
     }
 
