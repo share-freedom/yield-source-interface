@@ -96,6 +96,16 @@ contract MockYieldSourceV2 is Ownable,IYieldSource {
         return address(stakeToken);
     }
 
+     function hash(EIP712Domain memory eip712Domain) internal pure returns (bytes32) {
+        return keccak256(abi.encode(
+            EIP712DOMAIN_TYPEHASH,
+            keccak256(bytes(eip712Domain.name)),
+            keccak256(bytes(eip712Domain.version)),
+            eip712Domain.chainId,
+            eip712Domain.verifyingContract
+        ));
+    }
+
     /// @notice Returns the total balance (in asset tokens).  This includes the deposits and interest.
     /// @return The underlying balance of asset tokens.
     function balanceOfToken(address addr) external view override returns (uint256) {
